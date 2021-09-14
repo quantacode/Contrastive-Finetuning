@@ -8,7 +8,7 @@ DtracBsz=64
 FTepoch=200
 TAU=0.1
 # -------- Run command ---------
-CUDA_VISIBLE_DEVICES=0  python finetune_ConCe_parallelized.py \
+CUDA_VISIBLE_DEVICES=0  python finetune.py \
 --ft_mode $MODE \
 --targetset $TgtSet --is_tgt_aug \
 --distractor_set $DtracSet \
