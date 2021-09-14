@@ -5,9 +5,6 @@ import torch.nn as nn
 import math
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
-from methods.backbone_rfs import ResNet_rfs
-from methods.backbone_scl import ResNet_scl
-from methods.resnet_cnaps import resnet18_cnaps
 from torch.distributions import Bernoulli
 import ipdb
 
@@ -657,19 +654,6 @@ def Conv6NP():
 # --- ResNet networks ---
 def ResNet10(flatten=True, leakyrelu=False):
     return ResNet(SimpleBlock, [1,1,1,1],[64,128,256,512], flatten, leakyrelu)
-
-
-def resnet12(keep_prob=1.0, avg_pool=True, drop_rate=0.1, dropblock_size=5, num_classes=64, flatten=True, leakyrelu=False):
-  """rethinking few shot classification model.
-  Assumes miniImagenet only
-  """
-  return ResNet_rfs(BasicBlock, [1, 1, 1, 1], keep_prob=keep_prob, avg_pool=avg_pool,
-                    drop_rate=drop_rate, dropblock_size=dropblock_size, num_classes=num_classes)
-
-def resnet12_scl(keep_prob=1.0, avg_pool=True, drop_rate=0.1, dropblock_size=5, num_classes=-1):
-  return ResNet_scl(BasicBlock, [1, 1, 1, 1], keep_prob=keep_prob, avg_pool=avg_pool,
-                    drop_rate=drop_rate, dropblock_size=dropblock_size, num_classes=num_classes)
-
 def ResNet18(flatten=True, leakyrelu=False):
     return ResNet(SimpleBlock, [2,2,2,2],[64,128,256,512], flatten, leakyrelu)
 def ResNet34(flatten=True, leakyrelu=False):
@@ -680,10 +664,6 @@ model_dict = dict(Conv4 = Conv4,
                   Conv4_medium = Conv4_medium,
                   Conv6 = Conv6,
                   ResNet10 = ResNet10,
-                  resnet12 = resnet12,
-                  resnet12_scl = resnet12_scl,
-                  ResNet18_cnaps = resnet18_cnaps,
                   ResNet18 = ResNet18,
-                  resnet18='resnet18',
                   ResNet34 = ResNet34)
 

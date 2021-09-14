@@ -1,27 +1,26 @@
 # This code is modified from https://github.com/facebookresearch/low-shot-shrink-hallucinate
 
+import json
+import numpy as np
+import os
+import random
+from PIL import Image
+import ipdb
+
 import torch
 import torchvision.transforms as transforms
 import data.additional_transforms as add_transforms
-from data.dataset import SimpleDataset,NamedDataset, SetDataset, SetDataset_AugEpisode, MultiSetDataset, \
-  EpisodicBatchSampler,EpisodicBatchSampler_Unsuperv, MultiEpisodicBatchSampler
 from abc import abstractmethod
-# from data.autoaugment import ImageNetPolicy
 
 NUM_WORKERS=2
 class TransformLoader:
   def __init__(self, image_size,
       normalize_param = dict(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-      jitter_param = dict(Brightness=0.4, Contrast=0.4, Color=0.4), rot_deg = 30,
-      # jitter_param=dict(Brightness=0.9, Contrast=0.9, Color=0.9), rot_deg=45,
-               is_aug_valoader = False, no_color=False, only_resize=False):
+      jitter_param = dict(Brightness=0.4, Contrast=0.4, Color=0.4), rot_deg = 30):
     self.image_size = image_size
     self.normalize_param = normalize_param
     self.jitter_param = jitter_param
     self.rot_deg = rot_deg
-    self.is_aug_valoader = is_aug_valoader
-    self.no_color = no_color
-    self.only_resize = only_resize
 
   def parse_transform(self, transform_type):
     if transform_type=='ImageJitter':
@@ -47,26 +46,13 @@ class TransformLoader:
 
   def get_composed_transform(self, aug = False):
     if aug:
-      if self.is_aug_valoader:
-        transform_list = ['RandomResizedCrop', 'AutoAugment', 'ToTensor', 'Normalize']
-      elif self.no_color:
-        transform_list = ['Grayscale', 'RandomResizedCrop', 'RandomHorizontalFlip', 'ToTensor', 'Normalize']
-      else:
-        transform_list = ['RandomResizedCrop', 'ImageJitter', 'RandomHorizontalFlip', 'ToTensor', 'Normalize']
+      transform_list = ['RandomResizedCrop', 'ImageJitter', 'RandomHorizontalFlip', 'ToTensor', 'Normalize']
     else:
-      if self.no_color:
-        transform_list = ['Grayscale', 'Resize','CenterCrop', 'ToTensor', 'Normalize']
-      elif self.only_resize:
-        transform_list = ['Resize', 'ToTensor']
-      else:
-        transform_list = ['Resize','CenterCrop', 'ToTensor', 'Normalize']
+      transform_list = ['Resize','CenterCrop', 'ToTensor', 'Normalize']
 
     transform_funcs = []
     for x in transform_list:
-      if x=='AutoAugment':
-        transform_funcs.append(ImageNetPolicy())
-      else:
-        transform_funcs.append(self.parse_transform(x))
+      transform_funcs.append(self.parse_transform(x))
     transform = transforms.Compose(transform_funcs)
     return transform
 
@@ -77,74 +63,59 @@ class DataManager(object):
     pass
 
 class SimpleDataManager(DataManager):
-  def __init__(self, image_size, batch_size, no_color=False, drop_last=False, is_shuffle=True):
+  def __init__(self, image_size, batch_size, drop_last=False, is_shuffle=True):
     super(SimpleDataManager, self).__init__()
     self.batch_size = batch_size
-    self.trans_loader = TransformLoader(image_size, no_color=no_color)
+    self.trans_loader = TransformLoader(image_size)
     self.drop_last = drop_last
     self.is_shuffle = is_shuffle
 
-  def get_data_loader(self, data_file, aug): #parameters that would change on train/val set
+  def get_data_loader(self, data_file, aug):
     transform = self.trans_loader.get_composed_transform(aug)
     dataset = SimpleDataset(data_file, transform)
     data_loader_params = dict(batch_size = self.batch_size, shuffle = self.is_shuffle,
                               num_workers = NUM_WORKERS, pin_memory =True, drop_last=self.drop_last)
     data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
-
     return data_loader
 
-class NamedDataManager(SimpleDataManager):
-  def __init__(self, image_size, batch_size, is_shuffle=True):
-    super(NamedDataManager, self).__init__(image_size, batch_size)
-    self.is_shuffle = is_shuffle
+#############
 
-  def get_data_loader(self, data_file, aug):  # parameters that would change on train/val set
-    transform = self.trans_loader.get_composed_transform(aug)
-    dataset = NamedDataset(data_file, transform)
-    data_loader_params = dict(batch_size=self.batch_size, shuffle=self.is_shuffle,
-                              num_workers = NUM_WORKERS, pin_memory=True)
-    data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
-    return data_loader
+identity = lambda x:x
 
-class SetDataManager(DataManager):
-  def __init__(self, image_size, n_way, n_support, n_query, n_episode=100, no_color=False):
-    super(SetDataManager, self).__init__()
-    self.image_size = image_size
-    self.n_way = n_way
-    self.n_support = n_support
-    self.batch_size = n_support + n_query
-    self.n_episode = n_episode
+support_label = 1
+query_label = 0
+class SimpleDataset:
+  def __init__(self, data_file, transform, target_transform=identity):
+    with open(data_file, 'r') as f:
+      self.meta = json.load(f)
 
-    self.trans_loader = TransformLoader(image_size, no_color=no_color)
+    classnames_filename = os.path.join(os.path.dirname(data_file), 'classnames.txt')
+    if os.path.exists(classnames_filename):
+      self.clsid2name = {}
+      with open(classnames_filename) as f:
+        lines = f.readlines()
+        for line in lines:
+          line = line.split('\n')[0]
+          if '#' not in line and line!='':
+            try:
+              clsid, clsname = line.split(' ')
+            except:
+              ipdb.set_trace()
+            self.clsid2name[clsid] = clsname
 
-  def get_data_loader(self, data_file, aug, ): #parameters that would change on train/val set
-    transform = self.trans_loader.get_composed_transform(aug)
-    if isinstance(data_file, list):
-      dataset = MultiSetDataset( data_file , self.batch_size, transform )
-      sampler = MultiEpisodicBatchSampler(dataset.lens(), self.n_way, self.n_episode )
-    else:
-      dataset = SetDataset( data_file , self.batch_size, transform )
-      sampler = EpisodicBatchSampler(len(dataset), self.n_way, self.n_episode )
-    data_loader_params = dict(batch_sampler = sampler,  num_workers = NUM_WORKERS)
-    data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
-    return data_loader
+    self.transform = transform
+    self.target_transform = target_transform
 
-class SetDataManager_AugEpisode(DataManager):
-  def __init__(self, image_size, n_way, n_support, n_query, n_episode=100, workers=8):
-    super(SetDataManager_AugEpisode, self).__init__()
-    self.image_size = image_size
-    self.n_way = n_way
-    self.support_size = n_support
-    self.batch_size = n_support + n_query
-    self.n_episode = n_episode
-    self.workers = workers
+  def __getitem__(self,i):
+    image_path = os.path.join(self.meta['image_names'][i])
+    img = Image.open(image_path).convert('RGB')
+    img = self.transform(img)
+    target = self.target_transform(self.meta['image_labels'][i])
+    return img, target
 
-    self.trans_loader = TransformLoader(image_size, is_aug_valoader=True)
+  def __len__(self):
+    return len(self.meta['image_names'])
 
-  def get_data_loader(self, data_file, aug=None):  # parameters that would change on train/val set
-    tx = [self.trans_loader.get_composed_transform(aug=False), self.trans_loader.get_composed_transform(aug=True)]
-    dataset = SetDataset_AugEpisode(data_file, self.batch_size, self.support_size, tx)
-    sampler = EpisodicBatchSampler_Unsuperv(len(dataset), self.n_way, self.n_episode)
-    data_loader_params = dict(batch_sampler = sampler,  num_workers=self.workers, pin_memory=True)
-    data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
-    return data_loader
+  def get_classname(self, filename):
+    clsid = os.path.dirname(filename).split('/')[-1]
+    return self.clsid2name[clsid]

@@ -1,2 +1,0 @@
-+unsupervised_datamgr.py -  sample with replacement
-+unsupervised_datamgr2.py -  sample without replacement (Simple DM with aug)

@@ -1,33 +1,19 @@
+import numpy as np
+import ipdb
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from tensorboardX import SummaryWriter
 from torch.nn.utils import weight_norm
-import ipdb
+from tensorboardX import SummaryWriter
 
 class WeightImprint(nn.Module):
 	def __init__(self, model_func, tf_path=None, loadpath=None, is_distribute=False, flatten=True, leakyrelu=False):
 		super(WeightImprint, self).__init__()
 		self.method = 'WeightImprint'
 		self.model_func=model_func
-		if isinstance(model_func, str) and model_func == 'resnet18':
-			self.feature = ResidualNet('ImageNet', 18, 1000, None, tracking=False, use_bn=True)
-			self.feature.final_feat_dim = 512
-			self.feat_dim = self.feature.final_feat_dim
-		elif model_func.__name__ == 'resnet18_cnaps':
-			self.feature = model_func()
-			self.feat_dim = 512
-		elif model_func.__name__ == 'resnet12':
-			self.feature = model_func(flatten=flatten, leakyrelu=leakyrelu)
-			self.feat_dim = 640
-		else:
-			self.feature = model_func(flatten=flatten, leakyrelu=leakyrelu)
-			self.feat_dim = self.feature.final_feat_dim
-		# self.model_func=model_func
-		# self.feature = model_func(flatten=flatten, leakyrelu=leakyrelu)
-		# self.feat_dim = self.feature.final_feat_dim
-
+		self.feature = model_func(flatten=flatten, leakyrelu=leakyrelu)
+		self.feat_dim = self.feature.final_feat_dim
 		self.tf_path = tf_path
 		self.tf_writer = SummaryWriter(log_dir=self.tf_path)
 		self.loss_fn = nn.CrossEntropyLoss() 
@@ -38,15 +24,7 @@ class WeightImprint(nn.Module):
 
 	def load_model(self, loadpath):
 		state = torch.load(loadpath)
-		if 'model' in state:
-			# resnet12 model load from rfs paper
-			state = state['model']
-			loadstate = {}
-			for key in self.state_dict().keys():
-				if key.replace('feature.', '') in state.keys():
-					loadstate[key] = state[key.replace('feature.', '')]
-			self.load_state_dict(loadstate, strict=False)
-		elif 'state' in state.keys():
+		if 'state' in state.keys():
 			state = state['state']
 			loadstate = {}
 			for key in state.keys():
@@ -115,14 +93,6 @@ class WeightImprint(nn.Module):
 		cluster_sep = cluster_sep.sum(dim=1).mean(dim=0)
 		return cluster_spread.item(), cluster_sep.item()
 
-	# def _get_epi_dist(self, n_way, n_samples, z_all, proto):
-	# 	# distance to support center
-	# 	proto_resh = proto.unsqueeze(1).repeat(1,z_all.shape[1],1)
-	# 	all_dist = nn.functional.cosine_similarity(z_all, proto_resh, dim=2)
-	# 	cluster_spread = 1-all_dist.mean(dim=1).mean(dim=0)
-	# 	cluster_sep = (1-cosine_dist(proto, proto)).view(-1).sum()/2
-	# 	return cluster_spread.item(), cluster_sep.item()
-
 	def get_episode_distances(self, n_way, n_support, n_query, z_all):
 		z_all = z_all.detach().cpu()
 		n_samples = n_support+n_query
@@ -135,16 +105,6 @@ class WeightImprint(nn.Module):
 		cspread_query, csep_query = self._get_epi_dist(n_way, n_query, z_query)
 		if n_support==1:
 			cspread_support = np.random.rand(1)[0]*0.00001
-
-		# z_all_reshaped = z_all.contiguous().view(n_way, n_samples, z_all.shape[-1])
-		# z_support = z_all_reshaped[:,:n_support]
-		# z_query = z_all_reshaped[:,n_support:]
-		# proto = z_support.mean(dim=1)
-		# z_support = F.normalize(z_support, dim=-1)
-		# z_query = F.normalize(z_query, dim=-1)
-		# proto = F.normalize(proto, dim=-1)
-		# cspread_support, csep_support = self._get_epi_dist(n_way, n_support, z_support, proto)
-		# cspread_query, csep_query = self._get_epi_dist(n_way, n_query, z_query, proto)
 
 		return cspread_support, csep_support, cspread_query, csep_query
 
@@ -170,7 +130,6 @@ class LinearEvaluator(nn.Module):
 		return scores
 
 	def train_classifier(self, input, target):
-		# classifier = distLinear(model2.final_feat_dim, n_way)
 		classifier_opt = torch.optim.SGD(self.L.parameters(),
 		                                 lr=0.01, momentum=0.9, dampening=0.9, weight_decay=0.001)
 		self.cuda()
@@ -207,7 +166,6 @@ class LinearEvaluator(nn.Module):
 
 
 #########################################################
-
 def cosine_dist(x, y):
 	# x: N x D
 	# y: M x D
