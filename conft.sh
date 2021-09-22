@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# CONFT
+# Experimental Settings and Hyperparameters 
 MODE='ewn_lpan'
-TgtSet=cub
+TgtSet=cub #options: [cub/cars/places/plantae]
 DtracSet='./filelists/miniImagenet/base.json'
 DtracBsz=128
 FTepoch=100
 TAU=0.05
 # -------- Run command ---------
-CUDA_VISIBLE_DEVICES=1  python finetune.py \
+CUDA_VISIBLE_DEVICES=0  python finetune.py \
 --ft_mode $MODE \
 --targetset $TgtSet --is_tgt_aug \
 --distractor_set $DtracSet \
 --distractor_bsz $DtracBsz \
 --stop_epoch $FTepoch --tau $TAU \
 --name Mode-$MODE/TgtSet-$TgtSet_DSET-$DSET/DtracBsz-$DtracBsz_FTepoch-$FTepoch_TAU-$TAU \
---load-modelpath '/home/rajshekd/projects/FSG/FSG_raj/CSSF/output2/miniImagenet_ResNet10_lft/399.tar' \
+--load-modelpath 'output/checkpoints/baseline/399.tar' \
