@@ -11,7 +11,7 @@ def append_data(name, quantity):
 	return quantity
 
 
-def consolidate_results(max_parallel_id=0):
+def consolidate_results(root, max_parallel_id=0):
 	NE_list = range(0, 600, 10)
 	with open(os.path.join(root, 'results.txt'), 'w') as f:
 		for ine, num_epochs in enumerate(NE_list):
@@ -33,19 +33,15 @@ def consolidate_results(max_parallel_id=0):
 			
 			if len(acc_all_le) == 0:
 				continue
-			print(num_epochs)
 			acc_all_le = np.hstack(acc_all_le)
 			acc_all = np.hstack(acc_all)
-			accDiff_all = np.hstack(accDiff_all)
 			
 			nTasks = acc_all_le.shape[0]
 			acc_mean = np.mean(acc_all)
 			acc_std = 1.96 * np.std(acc_all) / np.sqrt(nTasks)
-			accDiff_mean = np.mean(accDiff_all)
-			accDiff_std = 1.96 * np.std(accDiff_all) / np.sqrt(nTasks)
 			
-			str = "accuracy = %4.2f +- %4.2f" % (acc_mean, acc_std)
-		print(str)
+			strn = "accuracy = %4.2f +- %4.2f" % (acc_mean, acc_std)
+		print(strn)
 
 
 if __name__ == "__main__":

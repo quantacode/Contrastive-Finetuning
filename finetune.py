@@ -293,4 +293,4 @@ if __name__ == '__main__':
 	finetune(source_loader, novel_loader, total_epoch, model_params, dataloader_params, params)
 	
 	# save results
-	consolidate_results()
+	consolidate_results(root=resultdir)
