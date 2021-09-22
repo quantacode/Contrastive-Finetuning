@@ -19,7 +19,7 @@ def parse_args(script):
   parser.add_argument('--train_aug'   , action='store_true',  help='perform data augmentation or not during training ')
   parser.add_argument('--debug'   , action='store_true',  help='debug')
   parser.add_argument('--name'        , default='tmp', type=str, help='')
-  parser.add_argument('--save_dir'    , default='experiments', type=str, help='directory for logs and checkpoints')
+  parser.add_argument('--save_dir'    , default='output', type=str, help='directory for logs and checkpoints')
   parser.add_argument('--data-dir'    , default='./filelists', type=str, help='')
   parser.add_argument('--image-size', default=84, type=int, help='tUn vs Semi supervised')
   parser.add_argument('--load-modelpath', default=None, type=str, help='')
