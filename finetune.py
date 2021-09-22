@@ -212,8 +212,8 @@ def finetune(source_loader, novel_loader, total_epoch, model_params, dataloader_
 					csep_query_before,
 					acc_all, accDiff_all, cluster_support, cluster_query)
 				
-				progress.set_description('improvement%d = %0.3f, finalacc%d = %0.3f' % (
-					epoch + 1, improvement, epoch + 1, acc_after))
+				#progress.set_description('improvement%d = %0.3f, finalacc%d = %0.3f' % (epoch + 1, improvement, epoch + 1, acc_after))
+				progress.set_description('epoch %' % (epoch + 1))
 		
 		acc_all_le.append(0)
 		if (task_id + 1) % 10 == 0 or task_id == len(novel_loader) - 1:
@@ -293,4 +293,4 @@ if __name__ == '__main__':
 	finetune(source_loader, novel_loader, total_epoch, model_params, dataloader_params, params)
 	
 	# save results
-	consolidate_results(root=resultdir)
+	consolidate_results()

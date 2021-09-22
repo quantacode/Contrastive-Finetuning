@@ -14,5 +14,5 @@ CUDA_VISIBLE_DEVICES=0  python finetune.py \
 --distractor_set $DtracSet \
 --distractor_bsz $DtracBsz \
 --stop_epoch $FTepoch --tau $TAU \
---name Mode-$MODE/TgtSet-$TgtSet_DSET-$DSET/DtracBsz-$DtracBsz_FTepoch-$FTepoch_TAU-$TAU \
+--name Mode-${MODE}/TgtSet-${TgtSet}_DSET-${DSET}/DtracBsz-${DtracBsz}_FTepoch-${FTepoch}_TAU-${TAU} \
 --load-modelpath 'output/checkpoints/baseline/399.tar' \
