@@ -23,7 +23,6 @@ class ConCeModel(WeightImprint):
 
   def __init__(self, model_func, tau, n_way, tf_path=None, loadpath=None, projhead=False,
                is_distribute=False, src_classes=0, ft_mode=False, cos_fac=1.0):
-    self.method = 'ConCeModel'
     self.tau = tau
     self.n_way = n_way
     self.src_classes = src_classes

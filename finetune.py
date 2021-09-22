@@ -266,7 +266,7 @@ if __name__ == '__main__':
 		raise ValueError('must define "--distractor_set" flag')
 	
 	print('\n------------ validating : %s --------------' % (params.hyperparam_select))
-	print('method : ConCE mode (%s)' % params.ft_mode)
+	print('finetuning mode : %s' % params.ft_mode)
 	print('model : %s' % params.model)
 	print('source file: %s' % (target_file))
 	print('novel file: %s' % (inference_file))
@@ -274,8 +274,6 @@ if __name__ == '__main__':
 		dataloader_params['n_way'], dataloader_params['n_support'], dataloader_params['n_query']))
 	print('distractor sz: %s' % (params.distractor_bsz))
 	print('tau : %s' % (params.tau))
-	if 'ce' in params.ft_mode:
-		print('cos fac : %s' % (params.cosine_fac))
 	print('lr : %s' % (params.lr))
 	print('Source Aug : ', params.is_src_aug)
 	print('Target Aug : ', params.is_tgt_aug)
