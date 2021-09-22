@@ -265,7 +265,7 @@ if __name__ == '__main__':
 	else:
 		raise ValueError('must define "--distractor_set" flag')
 	
-	print('\n------------ validating : %s --------------' % (params.hyperparam_select))
+	print('------------ experimental details --------------')
 	print('finetuning mode : %s' % params.ft_mode)
 	print('model : %s' % params.model)
 	print('source file: %s' % (target_file))
